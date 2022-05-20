@@ -5,7 +5,7 @@ import select
 import datetime
 import json
 
-from soupsieve import select
+#from soupsieve import select
 
 FORMAT = 'utf-8'
 TIMEOUT = 60
@@ -40,9 +40,9 @@ while(True):
     client_msg = data.decode(FORMAT) #decodifica msg de data
     received_ct = int(data[0] << 8) + int(data[1])
     received_index = received_ct - 1
-    print('Msg from {addr}: {data}') #printa msg (data) enviada do addr
+    print('Msg from {}: {}'.format(addr, data)) #printa msg (data) enviada do addr
     bytes_recv += len(data) #soma bytes dos dados recebidos
-    udp_received_time_list[received_index] = datetime.now()
+    #udp_received_time_list[received_index] = datetime.now()
 
     if bytes_recv >= TOTAL_DATA_SIZE: #52428800 se quantidade de dados recebidos for maior que X - break
         break
@@ -54,16 +54,16 @@ udp_sent_time_list = [None for _ in range(NUM_MESSAGES)] # [0, 1, ..., 51200]
 
 for i in range(NUM_MESSAGES):
     ct = i + 1
-    message = bytes([ct >> 8, (ct % 256), *STD_MESSAGE_PAYLOAD])
-    udp_sent_time_list[i] = datetime.now()
-    udp_sock.sendto(message, SERVER_ADDRESS)
+    message = PACKET_SIZE.to_bytes(10, "little") #bytes([ct >> 8, (ct % 256), *STD_MESSAGE_PAYLOAD])
+    #udp_sent_time_list[i] = datetime.now()
+    udp_sock.sendto(message, addr)
 
 udp_sock.close()
 
 
 #Início TCP
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-tcp_socket.bind(())
+tcp_socket.bind(SERVER_ADDRESS)
 tcp_socket.listen()
 tcp_socket.send()
 
@@ -137,22 +137,6 @@ e do cliente para o servidor as seguintes informações:
 - vazão de download
 - tempo total de download
 - tempo total de upload. 
-
 Obs.: O tamanho em bytes do contador deverá
 ser levado em conta na computação da vazão
 """
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-

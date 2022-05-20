@@ -8,7 +8,7 @@ from datetime import datetime
 LOCALHOST = 'localhost'
 LOCALPORT = 9090
 SERVER = 'localhost'
-SERVERPORT = 9091
+SERVERPORT = 9090
 SERVER_ADDRESS = (SERVER, SERVERPORT)
 
 NUM_MESSAGES = 51200
@@ -21,35 +21,37 @@ PACKET_SIZE = 1026
 STD_MESSAGE_PAYLOAD = [i for i in range(1024)]
 
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-udp_socket.bind((LOCALHOST, LOCALPORT))
+#udp_socket.bind((LOCALHOST, LOCALPORT))
 
 udp_sent_time_list = [None for _ in range(NUM_MESSAGES)] # [0, 1, ..., 51200]
 udp_received_time_list = [None for _ in range(NUM_MESSAGES)] # [0, 1, ..., 51200]
 
 for i in range(NUM_MESSAGES):
     ct = i + 1
-    message = bytes([ct >> 8, (ct % 256), *STD_MESSAGE_PAYLOAD])
+    message = PACKET_SIZE.to_bytes(10, "little")#bytearray([ct >> 8, (ct % 256), *STD_MESSAGE_PAYLOAD])
     udp_sent_time_list[i] = datetime.now()
     udp_socket.sendto(message, SERVER_ADDRESS)
 
 
 bytes_recv = 0
-time.sleep(TIMEOUT) #creme de la creme
+#time.sleep(TIMEOUT) #creme de la creme
 
 while(True):
     ready = select.select([udp_socket], [], [], TIMEOUT) #Conta TIMEOUT(60) segundos
     
-    if len(ready) == 0: #Se ready >= 60seg, break while
-        break
+    #if len(ready) == 0: #Se ready >= 60seg, break while
+    #    break
+    if(ready[0]):
+        data, addr = udp_socket.recvfrom(1024) #recebe msg -> data and addr
+        bytes_recv += len(data) #soma bytes dos dados recebidos
 
-    data, addr = udp_socket.recvfrom(1024) #recebe msg -> data and addr
-    bytes_recv += len(data) #soma bytes dos dados recebidos
+        received_ct = int(data[0] << 8) + int(data[1])
+        received_index = received_ct - 1
+        udp_received_time_list[received_index] = datetime.now()
 
-    received_ct = int(data[0] << 8) + int(data[1])
-    received_index = received_ct - 1
-    udp_received_time_list[received_index] = datetime.now()
-
-    if bytes_recv >= TOTAL_DATA_SIZE: #se quantidade de dados recebidos for maior que X, break
+        if bytes_recv >= TOTAL_DATA_SIZE: #se quantidade de dados recebidos for maior que X, break
+            break
+    else:
         break
 
 udp_socket.close()
