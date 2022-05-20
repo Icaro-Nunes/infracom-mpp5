@@ -18,7 +18,8 @@ BUFFERSIZE = 524288
 # NUM_MESSAGES = 524288
 NUM_MESSAGES = 1024
 FORMAT = 'utf-8'
-TIMEOUT = 60
+TIMEOUT = 30
+EDGE_TIMEOUT = 120
 PACKET_SIZE = 1026
 TOTAL_DATA_SIZE = NUM_MESSAGES*PACKET_SIZE
 
@@ -41,11 +42,13 @@ for i in range(NUM_MESSAGES):
 
 bytes_recv = 0
 #time.sleep(TIMEOUT) #creme de la creme
+first_receiving = True
 
 while(True):
     #ready = select.select([udp_socket], [], [], TIMEOUT) #Conta TIMEOUT(60) segundos
-
-        ready = select.select([udp_socket], [], [], TIMEOUT) #Conta TIMEOUT(60) segundos
+        ready = select.select([udp_socket], [], [], TIMEOUT if not first_receiving else EDGE_TIMEOUT) #Conta TIMEOUT(60) segundos
+        if first_receiving == True:
+            first_receiving = False
     
         if len(ready[0]) == 0: #Se ready >= 60seg, break while
             print('to no break do select 8)')
@@ -125,8 +128,8 @@ download_total_time = total_time_download
 
 var_1 = f"Taxa de perda do upload: {upload_loss_rate * 100}%"
 var_2 = f"Taxa de perda do download: {download_loss_rate * 100}%"
-var_3 = f"Vazão de upload: {upload_throughput * 8 * 1000}bps%" # *1000 porque os tempos vem em microssegundos
-var_4 = f"Vazão de download: {download_throughput * 8 * 1000}bps%" # *1000 porque os tempos vem em microssegundos
+var_3 = f"Vazão de upload: {upload_throughput * 8 * 1000} bps%" # *1000 porque os tempos vem em microssegundos
+var_4 = f"Vazão de download: {download_throughput * 8 * 1000} bps%" # *1000 porque os tempos vem em microssegundos
 var_5 = f"Tempo total de upload: {upload_total_time}"
 var_6 = f"Tempo total de download: {download_total_time}"
 
