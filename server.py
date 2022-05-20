@@ -1,11 +1,10 @@
 import socket
-import time
-import threading
 import select
 from datetime import datetime
+import time
 import json
-
-#from soupsieve import select
+import sys
+import os
 
 FORMAT = 'utf-8'
 TIMEOUT = 60
@@ -13,11 +12,10 @@ LOCALPORT = 9090
 HOSTPORT = '127.0.0.1'
 SERVER_ADDRESS = (HOSTPORT, LOCALPORT) #MUDAR
 
-#up
 BUFFERSIZE = 1028
-#NUM_MESSAGES = 524288
 NUM_MESSAGES = 1024
 PACKET_SIZE = 1026
+PAYLOAD_SIZE = 1024
 TOTAL_DATA_SIZE = NUM_MESSAGES*PACKET_SIZE #1050624
 
 udp_sock = socket.socket(family=socket.AF_INET, type = socket.SOCK_DGRAM) #Socket UDP
@@ -37,9 +35,11 @@ while(True):
         print('to no break do select 8)')
         break
 
+    
     data, addr = udp_sock.recvfrom(BUFFERSIZE) #recebe msg -> data and addr
     # tempo = time.strftime("%H:%M:%S") #pega hora, minutos e segundos
     # client_msg = data.decode(FORMAT) #decodifica msg de data
+    
     received_ct = int(data[0] << 8) + int(data[1])
     received_index = received_ct - 1
     # print('Msg from {}: {}'.format(addr, data)) #printa msg (data) enviada do addr
@@ -51,7 +51,7 @@ while(True):
         print('to no break 8)')
         break
 
-    print(bytes_recv)
+    print(bytes_recv, "/", TOTAL_DATA_SIZE)
 
 #time.sleep(10)
 print('finalizando etapa de recebimento')
@@ -61,12 +61,13 @@ STD_MESSAGE_PAYLOAD = [(i % 256) for i in range(1024)]
 
 udp_sent_time_list = [None for _ in range(NUM_MESSAGES)] # [0, 1, ..., 51200]
 
-for i in range(NUM_MESSAGES):
-    ct = i + 1
+for j in range(NUM_MESSAGES):
+    ct = j + 1
     # message = PACKET_SIZE.to_bytes(10, "little") #bytes([ct >> 8, (ct % 256), *STD_MESSAGE_PAYLOAD])
     message = bytes([ct >> 8, ct % 256, *STD_MESSAGE_PAYLOAD])
-    udp_sent_time_list[i] = datetime.now().timestamp()
+    udp_sent_time_list[j] = datetime.now().timestamp()
     udp_sock.sendto(message, addr)
+    time.sleep(0.1)
 
 print('fim envio')
 udp_sock.close()

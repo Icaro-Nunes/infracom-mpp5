@@ -1,5 +1,4 @@
 import socket
-import threading
 import time
 import json
 import select
@@ -13,61 +12,55 @@ CLIENT_IP = '127.0.0.1'
 CLIENT_PORT = 9091
 CLIENT_ADDRESS = (CLIENT_IP, CLIENT_PORT)
 
-# TOTAL_DATA_SIZE = 52428800  #22549504
 BUFFERSIZE = 524288
-# NUM_MESSAGES = 524288
 NUM_MESSAGES = 1024
 FORMAT = 'utf-8'
 TIMEOUT = 30
 EDGE_TIMEOUT = 120
 PACKET_SIZE = 1026
+PAYLOAD_SIZE = 1024
 TOTAL_DATA_SIZE = NUM_MESSAGES*PACKET_SIZE
+TOTAL_CONTENT_SIZE = NUM_MESSAGES*PAYLOAD_SIZE
 
-STD_MESSAGE_PAYLOAD = [(i % 256) for i in range(1024)] # 0, 1, ..., 255, 0, 1, ...
+STD_MESSAGE_PAYLOAD = [(i % 256) for i in range(PAYLOAD_SIZE)]
 
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#udp_socket.bind(SERVER_ADDRESS)
 
-udp_sent_time_list = [None for _ in range(NUM_MESSAGES)] # [0, 1, ..., 51200]
-udp_received_time_list = [None for _ in range(NUM_MESSAGES)] # [0, 1, ..., 51200]
+udp_sent_time_list = [None for _ in range(NUM_MESSAGES)]
+udp_received_time_list = [None for _ in range(NUM_MESSAGES)]
 
-for i in range(NUM_MESSAGES):
-    ct = i + 1
-    # message = PACKET_SIZE.to_bytes(1024, "little")#bytearray([ct >> 8, (ct % 256), *STD_MESSAGE_PAYLOAD])
-    
+for j in range(NUM_MESSAGES):
+    ct = j + 1
     message = bytes([ct >> 8, ct % 256, *STD_MESSAGE_PAYLOAD])
-    udp_sent_time_list[i] = datetime.now().timestamp()
+    udp_sent_time_list[j] = datetime.now().timestamp()
     udp_socket.sendto(message, SERVER_ADDRESS)
+    time.sleep(0.1)
 
 
 bytes_recv = 0
-#time.sleep(TIMEOUT) #creme de la creme
 first_receiving = True
 
 while(True):
-    #ready = select.select([udp_socket], [], [], TIMEOUT) #Conta TIMEOUT(60) segundos
-        ready = select.select([udp_socket], [], [], TIMEOUT if not first_receiving else EDGE_TIMEOUT) #Conta TIMEOUT(60) segundos
-        if first_receiving == True:
-            first_receiving = False
-    
-        if len(ready[0]) == 0: #Se ready >= 60seg, break while
-            print('to no break do select 8)')
-            break
+    ready = select.select([udp_socket], [], [], TIMEOUT if not first_receiving else EDGE_TIMEOUT) #Conta TIMEOUT(60) segundos
+    if first_receiving == True:
+        first_receiving = False
 
-        data, addr = udp_socket.recvfrom(BUFFERSIZE) #recebe msg -> data and addr
-        # data_2 = int.from_bytes(data, 'little')#soma bytes dos dados recebidos
-        bytes_recv += len(data)
+    if len(ready[0]) == 0:
+        print('to no break do select 8')
+        break
 
-        received_ct = int(data[0] << 8) + int(data[1])
-        received_index = received_ct - 1
-        udp_received_time_list[received_index] = datetime.now().timestamp()
-        # print('Msg from {}: {}'.format(addr, data))
+    data, addr = udp_socket.recvfrom(BUFFERSIZE)
+    bytes_recv += len(data)
 
-        if bytes_recv >= TOTAL_DATA_SIZE: #se quantidade de dados recebidos for maior que X, break
-            print('entrei no break')
-            break
+    received_ct = int(data[0] << 8) + int(data[1])
+    received_index = received_ct - 1
+    udp_received_time_list[received_index] = datetime.now().timestamp()
 
-        print(bytes_recv)
+    if bytes_recv >= TOTAL_DATA_SIZE:
+        print('entrei no break')
+        break
+
+    print(bytes_recv, "/", TOTAL_DATA_SIZE)
 
 
 udp_socket.close()
@@ -84,12 +77,7 @@ print('linhas 74')
 info_string = info_bytes.decode(FORMAT)
 info = json.loads(info_string)
 tcp_socket.close()
-print({info_string}) ###
 
-# info = dict(
-#     "upload_timestamps": [0 ... (51200 - 1)],
-#     "download_timestamps": [0 ... (51200 - 1)]
-# )
 
 # calcular os tempos e valores
 failed_uploads = 0
@@ -126,14 +114,14 @@ upload_total_time = total_time_upload
 download_total_time = total_time_download
 
 
-var_1 = f"Taxa de perda do upload: {upload_loss_rate * 100}%"
-var_2 = f"Taxa de perda do download: {download_loss_rate * 100}%"
-var_3 = f"Vazão de upload: {upload_throughput * 8 * 1000} bps%" # *1000 porque os tempos vem em microssegundos
-var_4 = f"Vazão de download: {download_throughput * 8 * 1000} bps%" # *1000 porque os tempos vem em microssegundos
-var_5 = f"Tempo total de upload: {upload_total_time}"
-var_6 = f"Tempo total de download: {download_total_time}"
+var_1 = f"Taxa de perda do upload: {upload_loss_rate * 100:.2f}%"
+var_2 = f"Taxa de perda do download: {download_loss_rate * 100:.2f}%"
+var_3 = f"Vazão de upload: {upload_throughput * 8:.2f} bps%" # *1000 porque os tempos vem em microssegundos
+var_4 = f"Vazão de download: {download_throughput * 8:.2f} bps%" # *1000 porque os tempos vem em microssegundos
+var_5 = f"Tempo total de upload: {upload_total_time:.2f} s"
+var_6 = f"Tempo total de download: {download_total_time:.2f} s"
 
 connection_data = f"{var_1}\n{var_2}\n{var_3}\n{var_4}\n{var_5}\n{var_6}"
 
-# tcp_socket.send()
 print(connection_data)
+# tcp_socket.send()
