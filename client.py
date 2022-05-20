@@ -22,6 +22,8 @@ PAYLOAD_SIZE = 1024
 TOTAL_DATA_SIZE = NUM_MESSAGES*PACKET_SIZE
 TOTAL_CONTENT_SIZE = NUM_MESSAGES*PAYLOAD_SIZE
 
+SOCKET_RESTING_TIME = 0.01
+
 STD_MESSAGE_PAYLOAD = [(i % 256) for i in range(PAYLOAD_SIZE)]
 
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -34,7 +36,7 @@ for j in range(NUM_MESSAGES):
     message = bytes([ct >> 8, ct % 256, *STD_MESSAGE_PAYLOAD])
     udp_sent_time_list[j] = datetime.now().timestamp()
     udp_socket.sendto(message, SERVER_ADDRESS)
-    time.sleep(0.1)
+    time.sleep(SOCKET_RESTING_TIME)
 
 
 bytes_recv = 0
@@ -76,7 +78,6 @@ info_bytes = tcp_socket.recv(BUFFERSIZE)
 print('linhas 74')
 info_string = info_bytes.decode(FORMAT)
 info = json.loads(info_string)
-tcp_socket.close()
 
 
 # calcular os tempos e valores
@@ -124,4 +125,15 @@ var_6 = f"Tempo total de download: {download_total_time:.2f} s"
 connection_data = f"{var_1}\n{var_2}\n{var_3}\n{var_4}\n{var_5}\n{var_6}"
 
 print(connection_data)
-# tcp_socket.send()
+
+analytics = {
+    'upload_loss_rate': upload_loss_rate, 
+    'download_loss_rate': download_loss_rate, 
+    'upload_throughput': upload_throughput, 
+    'download_throughput': download_throughput, 
+    'upload_total_time': upload_total_time, 
+    'download_total_time': download_total_time
+}
+analytics_string = json.dumps(analytics)
+analytics_bytes = bytes(analytics_string, FORMAT)
+tcp_socket.sendall(analytics_bytes)

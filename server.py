@@ -12,11 +12,13 @@ LOCALPORT = 9090
 HOSTPORT = '127.0.0.1'
 SERVER_ADDRESS = (HOSTPORT, LOCALPORT) #MUDAR
 
-BUFFERSIZE = 1028
+BUFFERSIZE = 2048
 NUM_MESSAGES = 1024
 PACKET_SIZE = 1026
 PAYLOAD_SIZE = 1024
 TOTAL_DATA_SIZE = NUM_MESSAGES*PACKET_SIZE #1050624
+
+SOCKET_RESTING_TIME = 0.01
 
 udp_sock = socket.socket(family=socket.AF_INET, type = socket.SOCK_DGRAM) #Socket UDP
 udp_sock.bind((HOSTPORT, LOCALPORT)) #conecta com as portas
@@ -67,7 +69,7 @@ for j in range(NUM_MESSAGES):
     message = bytes([ct >> 8, ct % 256, *STD_MESSAGE_PAYLOAD])
     udp_sent_time_list[j] = datetime.now().timestamp()
     udp_sock.sendto(message, addr)
-    time.sleep(0.1)
+    time.sleep(SOCKET_RESTING_TIME)
 
 print('fim envio')
 udp_sock.close()
@@ -88,75 +90,19 @@ info = {
 info_string = json.dumps(info)
 info_bytes = bytes(info_string, FORMAT)
 conn.sendall(info_bytes)
-# info_bytes = conn.recv(BUFFERSIZE)
-# info_string = info_bytes.decode(FORMAT)
-# info = json.loads(info_string)
 
-# # calcular os tempos e valores
-# failed_uploads = 0
-# total_data_uploaded = 0
-# total_time_upload = 0
+analytics_bytes = conn.recv(BUFFERSIZE)
+analytics_string = analytics_bytes.decode(FORMAT)
+analytics = json.loads(analytics_bytes)
 
-# failed_downloads = 0
-# total_data_downloaded = 0
-# total_time_download = 0
+var_1 = f"Taxa de perda do upload: {analytics['upload_loss_rate'] * 100}%"
+var_2 = f"Taxa de perda do download: {analytics['download_loss_rate'] * 100}%"
+var_3 = f"Vazão de upload: {analytics['upload_throughput'] * 8}bps%"
+var_4 = f"Vazão de download: {analytics['download_throughput'] * 8}bps%"
+var_5 = f"Tempo total de upload: {analytics['upload_total_time']}"
+var_6 = f"Tempo total de download: {analytics['download_total_time']}"
 
-# for i, tmstp in enumerate(info["upload_timestamps"]):
-#     if tmstp == None:
-#         failed_uploads += 1
-#         continue
+result_data = f"{var_1}\n{var_2}\n{var_3}\n{var_4}\n{var_5}\n{var_6}"
+print(result_data)
 
-#     total_data_uploaded += PACKET_SIZE
-#     total_time_upload += tmstp - udp_sent_time_list[i]
-
-# for i, tmstp in enumerate(udp_received_time_list):
-#     if tmstp == None:
-#         failed_downloads += 1
-#         continue
-
-#     total_data_downloaded += PACKET_SIZE
-#     total_time_download += tmstp - info["download_timestamps"][i]
-
-# upload_loss_rate = failed_uploads / NUM_MESSAGES
-# download_loss_rate = failed_uploads / NUM_MESSAGES
-
-# upload_throughput = total_data_uploaded / total_time_upload
-# download_throughput = total_data_downloaded / total_time_download
-
-# upload_total_time = total_time_upload
-# download_total_time = total_time_download
-
-# var_1 = f"Taxa de perda do upload: {upload_loss_rate * 100}%"
-# var_2 = f"Taxa de perda do download: {download_loss_rate * 100}%"
-# var_3 = f"Vazão de upload: {upload_throughput * 8}bps%"
-# var_4 = f"Vazão de download: {download_throughput * 8}bps%"
-# var_5 = f"Tempo total de upload: {upload_total_time}"
-# var_6 = f"Tempo total de download: {download_total_time}"
-
-# connection_data = f"{var_1}\n{var_2}\n{var_3}\n{var_4}\n{var_5}\n{var_6}"
-
-# tcp_socket.send()
-
-
-
-
-
-
-# """
-# Cálculo de taxa de perda:
-# taxa de perda = (1 - pacotes recebidos/50) * 100
-# """
-
-# """
-# Ao final da conexão UDP nós precisaremos utilizar
-# a conexão TCP para enviar do servidor para o cliente
-# e do cliente para o servidor as seguintes informações:
-# - taxa de perda no upload
-# - taxa de perda no download
-# - vazão de upload
-# - vazão de download
-# - tempo total de download
-# - tempo total de upload. 
-# Obs.: O tamanho em bytes do contador deverá
-# ser levado em conta na computação da vazão
-# """
+conn.close()
